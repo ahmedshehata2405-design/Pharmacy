@@ -1,0 +1,127 @@
+@using System.Linq
+@model Pharmacy.Business.clsPurchase
+
+@{
+    ViewData["Title"] = "فاتورة شراء جديدة";
+    System.Data.DataTable medicines = ViewBag.Medicines;
+
+    var medicineList = medicines.Rows.Cast<System.Data.DataRow>()
+        .Select(m => new { id = (int)m["MedicineID"], name = m["Name"].ToString() })
+        .ToList();
+
+    // Lines typed before a failed save, so they are not lost
+    var postedLines = Model.Lines?.Select(l => new { medicineId = l.MedicineID, quantity = l.Quantity, unitPrice = l.UnitPrice }).ToList();
+}
+
+<h2>فاتورة شراء جديدة</h2>
+
+<form asp-action="Create" method="post" id="purchaseForm">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label asp-for="SupplierID">المورد</label>
+            <select asp-for="SupplierID" class="form-control" asp-items="ViewBag.Suppliers">
+                <option value="">-- اختر مورد --</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="BranchID">الفرع</label>
+            <select asp-for="BranchID" class="form-control" asp-items="ViewBag.Branches">
+                <option value="">-- اختر فرع --</option>
+            </select>
+        </div>
+    </div>
+
+    <h5>الأصناف</h5>
+    <table class="table" id="linesTable">
+        <thead>
+            <tr>
+                <th>الدواء</th>
+                <th>الكمية</th>
+                <th>سعر الشراء</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="linesBody">
+            <!-- rows added here by JS -->
+        </tbody>
+    </table>
+
+    <button type="button" id="addLineBtn" class="btn btn-outline-secondary mb-3">+ إضافة صنف</button>
+
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">حفظ الفاتورة</button>
+        <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    const medicineOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(medicineList));
+    const postedLines = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(postedLines)) || [];
+    const linesBody = document.getElementById('linesBody');
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    // Names must be Lines[0], Lines[1], ... with no gaps or ASP.NET stops reading at the first gap
+    function reindex() {
+        linesBody.querySelectorAll('tr').forEach((row, i) => {
+            row.querySelector('.med-select').name = 'Lines[' + i + '].MedicineID';
+            row.querySelector('.qty-input').name = 'Lines[' + i + '].Quantity';
+            row.querySelector('.price-input').name = 'Lines[' + i + '].UnitPrice';
+        });
+    }
+
+    function addLine(medicineId, quantity, unitPrice) {
+        let options = '<option value="">-- اختر دواء --</option>';
+        medicineOptions.forEach(m => {
+            options += '<option value="' + m.id + '"' + (Number(medicineId) === m.id ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>';
+        });
+
+        const row = document.createElement('tr');
+        row.innerHTML =
+            '<td><select class="form-control med-select">' + options + '</select></td>' +
+            '<td><input type="number" class="form-control qty-input" min="1" value="' + (quantity || 1) + '" /></td>' +
+            '<td><input type="number" step="0.01" class="form-control price-input" min="0" value="' + (unitPrice || '') + '" /></td>' +
+            '<td><button type="button" class="btn btn-sm btn-danger remove-line">حذف</button></td>';
+
+        linesBody.appendChild(row);
+        reindex();
+    }
+
+    document.getElementById('addLineBtn').addEventListener('click', function () { addLine(); });
+
+    linesBody.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('remove-line')) return;
+        e.target.closest('tr').remove();
+        if (linesBody.children.length === 0) addLine();
+        reindex();
+    });
+
+    document.getElementById('purchaseForm').addEventListener('submit', function (e) {
+        // rows the person never filled in are simply dropped
+        linesBody.querySelectorAll('tr').forEach(row => {
+            if (!row.querySelector('.med-select').value) row.remove();
+        });
+
+        if (linesBody.children.length === 0) {
+            e.preventDefault();
+            alert('أضف صنف واحد على الأقل.');
+            addLine();
+            return;
+        }
+
+        reindex();
+    });
+
+    if (postedLines.length > 0)
+        postedLines.forEach(l => addLine(l.medicineId, l.quantity, l.unitPrice));
+    else
+        addLine();
+</script>
+}

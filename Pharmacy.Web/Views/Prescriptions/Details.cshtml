@@ -1,0 +1,29 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "تفاصيل الوصفة";
+}
+
+<h2>تفاصيل الوصفة رقم @ViewBag.PrescriptionID</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>الدواء</th>
+            <th>الجرعة</th>
+            <th>الكمية</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            <tr>
+                <td>@row["MedicineName"]</td>
+                <td>@row["Dosage"]</td>
+                <td>@row["Quantity"]</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Index" class="btn btn-secondary">رجوع</a>

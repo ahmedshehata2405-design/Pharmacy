@@ -1,0 +1,31 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "تفاصيل فاتورة الشراء";
+}
+
+<h2>تفاصيل فاتورة الشراء رقم @ViewBag.PurchaseID</h2>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الدواء</th>
+            <th>الكمية</th>
+            <th>سعر الوحدة</th>
+            <th>الإجمالي</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            <tr>
+                <td>@row["MedicineName"]</td>
+                <td>@row["Quantity"]</td>
+                <td>@row["UnitPrice"]</td>
+                <td>@row["LineTotal"]</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Index" class="btn btn-secondary">رجوع لقائمة الفواتير</a>

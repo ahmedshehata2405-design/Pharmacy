@@ -1,0 +1,322 @@
+@using System.Linq
+@model Pharmacy.Business.clsSale
+
+@{
+    ViewData["Title"] = "فاتورة بيع جديدة";
+
+    // Lines the person had typed before a failed save, so they are not lost
+    var postedLines = Model.Lines?.Select(l => new { medicineId = l.MedicineID, quantity = l.Quantity }).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">فاتورة بيع جديدة</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">قائمة الفواتير</a>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <div>@error.ErrorMessage</div>
+        }
+    </div>
+}
+
+<form asp-action="Create" method="post" id="saleForm">
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="BranchID" class="form-label">الفرع</label>
+                    <select asp-for="BranchID" class="form-select" asp-items="ViewBag.Branches" required>
+                        <option value="">-- اختر فرع --</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="CustomerID" class="form-label">العميل (اختياري)</label>
+                    <div class="input-group">
+                        <select asp-for="CustomerID" class="form-select" asp-items="ViewBag.Customers">
+                            <option value="">-- عميل نقدي --</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#quickCustomerModal">+ عميل جديد</button>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="PrescriptionID" class="form-label">الوصفة الطبية (للأدوية التي تحتاجها)</label>
+                    <div class="input-group">
+                        <select asp-for="PrescriptionID" class="form-select" asp-items="ViewBag.Prescriptions">
+                            <option value="">-- بدون وصفة --</option>
+                        </select>
+                        <a asp-controller="Prescriptions" asp-action="Create" target="_blank"
+                           class="btn btn-outline-primary">+ وصفة جديدة</a>
+                        <button type="button" id="refreshPrescriptions" class="btn btn-outline-secondary"
+                                title="تحديث قائمة الوصفات">↻</button>
+                    </div>
+                    <div class="form-text">بعد إضافة وصفة في التبويب الجديد اضغط ↻ لتظهر هنا.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>الأصناف <small class="text-muted" id="stockNote"></small></span>
+            <button type="button" id="addLineBtn" class="btn btn-sm btn-outline-primary">+ إضافة صنف</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:42%">الدواء</th>
+                        <th style="width:14%">الكمية</th>
+                        <th>سعر الوحدة</th>
+                        <th>الإجمالي</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="linesBody"></tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="3" class="text-end">الإجمالي الكلي</th>
+                        <th id="grandTotal">0.00</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div id="rxWarning" class="alert alert-warning d-none"></div>
+
+    <button type="submit" id="submitBtn" class="btn btn-primary btn-lg">إتمام البيع</button>
+    <a asp-action="Index" class="btn btn-secondary btn-lg">إلغاء</a>
+</form>
+
+<partial name="_QuickCustomerModal" />
+
+@section Scripts {
+<script>
+    const postedLines = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(postedLines)) || [];
+
+    const branchSelect = document.getElementById('BranchID');
+    const customerSelect = document.getElementById('CustomerID');
+    const prescriptionSelect = document.getElementById('PrescriptionID');
+    const linesBody = document.getElementById('linesBody');
+    const grandTotal = document.getElementById('grandTotal');
+    const stockNote = document.getElementById('stockNote');
+    const rxWarning = document.getElementById('rxWarning');
+
+    let stock = [];          // medicines that can be sold from the selected branch (name, price, available quantity)
+    let prescriptions = [];  // { id, customerId, text }
+    let currentBranch = branchSelect.value;
+
+    function fmt(n) { return Number(n).toFixed(2); }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    function findMedicine(id) {
+        return stock.find(m => m.medicineId === Number(id));
+    }
+
+    function medicineOptions(selectedId) {
+        let html = '<option value="">-- اختر دواء --</option>';
+        stock.forEach(m => {
+            const label = m.name + (m.unit ? ' (' + m.unit + ')' : '')
+                + ' — متاح: ' + m.quantity + ' — ' + fmt(m.price) + ' ج.م'
+                + (m.requiresPrescription ? ' — 📋 يحتاج وصفة' : '');
+            html += '<option value="' + m.medicineId + '"' + (Number(selectedId) === m.medicineId ? ' selected' : '') + '>'
+                + escapeHtml(label) + '</option>';
+        });
+        return html;
+    }
+
+    // Row names must be Lines[0], Lines[1], ... with no gaps, otherwise ASP.NET stops reading at the first gap
+    // (this is what used to lose lines after deleting a row in the middle).
+    function reindex() {
+        linesBody.querySelectorAll('tr').forEach((row, i) => {
+            row.querySelector('.med-select').name = 'Lines[' + i + '].MedicineID';
+            row.querySelector('.qty-input').name = 'Lines[' + i + '].Quantity';
+        });
+    }
+
+    function refreshRow(row) {
+        const m = findMedicine(row.querySelector('.med-select').value);
+        const qty = row.querySelector('.qty-input');
+
+        if (m) {
+            qty.max = m.quantity;
+            row.querySelector('.unit-price').textContent = fmt(m.price);
+            row.querySelector('.line-total').textContent = fmt(m.price * (Number(qty.value) || 0));
+        } else {
+            qty.removeAttribute('max');
+            row.querySelector('.unit-price').textContent = '-';
+            row.querySelector('.line-total').textContent = '-';
+        }
+
+        updateSummary();
+    }
+
+    function updateSummary() {
+        let total = 0;
+        const rxNames = [];
+
+        linesBody.querySelectorAll('tr').forEach(row => {
+            const m = findMedicine(row.querySelector('.med-select').value);
+            if (!m) return;
+            total += m.price * (Number(row.querySelector('.qty-input').value) || 0);
+            if (m.requiresPrescription) rxNames.push(m.name);
+        });
+
+        grandTotal.textContent = fmt(total);
+
+        if (rxNames.length > 0 && !prescriptionSelect.value) {
+            rxWarning.textContent = 'الأدوية دي تحتاج وصفة طبية، اختر وصفة قبل إتمام البيع: ' + rxNames.join('، ');
+            rxWarning.classList.remove('d-none');
+        } else {
+            rxWarning.classList.add('d-none');
+        }
+    }
+
+    function addLine(medicineId, quantity) {
+        const row = document.createElement('tr');
+        row.innerHTML =
+            '<td><select class="form-select med-select">' + medicineOptions(medicineId) + '</select></td>' +
+            '<td><input type="number" class="form-control qty-input" min="1" value="' + (quantity || 1) + '" /></td>' +
+            '<td class="unit-price">-</td>' +
+            '<td class="line-total">-</td>' +
+            '<td><button type="button" class="btn btn-sm btn-outline-danger remove-line">حذف</button></td>';
+        linesBody.appendChild(row);
+        reindex();
+        refreshRow(row);
+    }
+
+    function rebuildRows(lines) {
+        linesBody.innerHTML = '';
+        if (lines && lines.length > 0)
+            lines.forEach(l => addLine(l.medicineId, l.quantity));
+        else
+            addLine();
+        updateSummary();
+    }
+
+    async function loadStock(lines) {
+        stock = [];
+
+        if (!branchSelect.value) {
+            stockNote.textContent = '— اختر الفرع أولًا لعرض أدويته';
+        } else {
+            try {
+                const response = await fetch('@(Url.Action("BranchStock", "Sales"))?branchId=' + branchSelect.value);
+                if (!response.ok) throw new Error('bad response');
+                stock = await response.json();
+                stockNote.textContent = stock.length > 0
+                    ? '— المتاح للبيع في هذا الفرع: ' + stock.length + ' صنف'
+                    : '— لا توجد أدوية متاحة للبيع في هذا الفرع (المخزون فارغ أو منتهي الصلاحية)';
+            } catch (err) {
+                stockNote.textContent = '— تعذر تحميل أدوية الفرع، حدّث الصفحة';
+            }
+        }
+
+        rebuildRows(lines);
+    }
+
+    // ----- prescriptions: filtered by the chosen customer, refreshable after adding a new one -----
+    function renderPrescriptions(selectedId) {
+        const customerId = customerSelect.value;
+        prescriptionSelect.innerHTML = '<option value="">-- بدون وصفة --</option>';
+
+        prescriptions
+            .filter(p => !customerId || String(p.customerId) === customerId)
+            .forEach(p => prescriptionSelect.add(new Option(p.text, p.id, false, String(p.id) === String(selectedId))));
+
+        updateSummary();
+    }
+
+    async function loadPrescriptions() {
+        try {
+            const response = await fetch('@Url.Action("PrescriptionsList", "Sales")');
+            if (!response.ok) return;
+            prescriptions = await response.json();
+            renderPrescriptions(prescriptionSelect.value);
+        } catch (err) { /* keep the list the server rendered */ }
+    }
+
+    // ----- events -----
+    branchSelect.addEventListener('change', function () {
+        const hasSelection = Array.from(linesBody.querySelectorAll('.med-select')).some(s => s.value);
+
+        if (hasSelection && !confirm('تغيير الفرع هيمسح الأصناف المختارة، متأكد؟')) {
+            branchSelect.value = currentBranch;
+            return;
+        }
+
+        currentBranch = branchSelect.value;
+        loadStock([]);
+    });
+
+    document.getElementById('addLineBtn').addEventListener('click', function () {
+        if (!branchSelect.value) { alert('اختر الفرع أولًا.'); return; }
+        addLine();
+    });
+
+    linesBody.addEventListener('change', function (e) {
+        const row = e.target.closest('tr');
+        if (row) refreshRow(row);
+    });
+    linesBody.addEventListener('input', function (e) {
+        const row = e.target.closest('tr');
+        if (row) refreshRow(row);
+    });
+    linesBody.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('remove-line')) return;
+        e.target.closest('tr').remove();
+        if (linesBody.children.length === 0) addLine();
+        reindex();
+        updateSummary();
+    });
+
+    customerSelect.addEventListener('change', function () { renderPrescriptions(prescriptionSelect.value); });
+
+    prescriptionSelect.addEventListener('change', function () {
+        const p = prescriptions.find(x => String(x.id) === prescriptionSelect.value);
+        if (p && !customerSelect.value) {
+            customerSelect.value = String(p.customerId);
+            renderPrescriptions(prescriptionSelect.value);
+        }
+        updateSummary();
+    });
+
+    document.getElementById('refreshPrescriptions').addEventListener('click', loadPrescriptions);
+
+    document.getElementById('saleForm').addEventListener('submit', function (e) {
+        // rows the person never filled in are simply dropped
+        linesBody.querySelectorAll('tr').forEach(row => {
+            if (!row.querySelector('.med-select').value) row.remove();
+        });
+
+        if (linesBody.children.length === 0) {
+            e.preventDefault();
+            alert('أضف صنف واحد على الأقل.');
+            addLine();
+            return;
+        }
+
+        reindex();
+        document.getElementById('submitBtn').disabled = true; // no double invoices from a double click
+    });
+
+    pharmacyQuickAdd('quickCustomerModal', '@Url.Action("QuickCreate", "Customers")', 'CustomerID');
+
+    // ----- start -----
+    loadStock(postedLines);
+    loadPrescriptions();
+</script>
+}

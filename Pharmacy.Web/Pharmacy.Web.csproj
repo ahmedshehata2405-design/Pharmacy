@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Nullable must stay disabled: with it on, empty optional form fields
+         (Description, Email...) would fail model validation as "required". -->
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Pharmacy.Web</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Pharmacy.Business\Pharmacy.Business.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,132 @@
+@{
+    string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+
+    // "active" for the menu item of the page we are on
+    string Active(params string[] controllers)
+    {
+        foreach (string c in controllers)
+            if (string.Equals(c, currentController, StringComparison.OrdinalIgnoreCase))
+                return "active";
+        return "";
+    }
+
+    bool isLoggedIn = User.Identity != null && User.Identity.IsAuthenticated;
+    bool isAdmin = User.IsInRole("Admin");
+    bool isStaff = isAdmin || User.IsInRole("Pharmacist");   // Admin or Pharmacist
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - نظام الصيدلية</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="no-print">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">🏥 نظام الصيدلية</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                        aria-controls="mainNav" aria-expanded="false" aria-label="القائمة">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainNav">
+                    @if (isLoggedIn)
+                    {
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Home")" asp-controller="Home" asp-action="Index">الرئيسية</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Sales")" asp-controller="Sales" asp-action="Index">المبيعات</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Prescriptions")" asp-controller="Prescriptions" asp-action="Index">الوصفات الطبية</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Medicines")" asp-controller="Medicines" asp-action="Index">الأدوية</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Inventory")" asp-controller="Inventory" asp-action="Index">المخزون</a>
+                            </li>
+                            @if (isStaff)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @Active("Purchases")" asp-controller="Purchases" asp-action="Index">المشتريات</a>
+                                </li>
+                            }
+
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @Active("Customers", "Doctors", "Suppliers")" href="#" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false">العملاء والأطباء والموردين</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-controller="Customers" asp-action="Index">العملاء</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Doctors" asp-action="Index">الأطباء</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Suppliers" asp-action="Index">الموردين</a></li>
+                                </ul>
+                            </li>
+
+                            @if (isStaff)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @Active("Branches", "Categories")" href="#" role="button"
+                                       data-bs-toggle="dropdown" aria-expanded="false">الإعدادات</a>
+                                    <ul class="dropdown-menu">
+                                        @if (isAdmin)
+                                        {
+                                            <li><a class="dropdown-item" asp-controller="Branches" asp-action="Index">الفروع</a></li>
+                                        }
+                                        <li><a class="dropdown-item" asp-controller="Categories" asp-action="Index">تصنيفات الأدوية</a></li>
+                                    </ul>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
+                    }
+
+                    <ul class="navbar-nav ms-auto">
+                        @if (isLoggedIn)
+                        {
+                            <li class="nav-item">
+                                <span class="nav-link text-white">مرحبًا، @User.Identity.Name (@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)</span>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Logout">تسجيل الخروج</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Login">تسجيل الدخول</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container page-content">
+        <main role="main" class="pb-3">
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="site-footer border-top text-muted text-center py-3 no-print">
+        &copy; @DateTime.Now.Year - نظام إدارة الصيدلية
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/quickadd.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

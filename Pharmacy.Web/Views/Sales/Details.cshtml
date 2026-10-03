@@ -1,0 +1,86 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "فاتورة بيع";
+    System.Data.DataRow header = ViewBag.Header;
+    decimal total = 0;
+    foreach (System.Data.DataRow r in Model.Rows) total += (decimal)r["LineTotal"];
+    int lineNo = 0;
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success no-print">@TempData["SuccessMessage"]</div>
+}
+
+<div class="card invoice">
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <h3 class="mb-1">🏥 نظام الصيدلية</h3>
+            <div class="fw-bold">@header["BranchName"]</div>
+            @if (!header.IsNull("BranchAddress") || !header.IsNull("BranchPhone"))
+            {
+                <div class="text-muted small">
+                    @(header.IsNull("BranchAddress") ? "" : header["BranchAddress"].ToString())
+                    @(!header.IsNull("BranchAddress") && !header.IsNull("BranchPhone") ? " - " : "")
+                    @(header.IsNull("BranchPhone") ? "" : header["BranchPhone"].ToString())
+                </div>
+            }
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-6">رقم الفاتورة: <strong>@header["SaleID"]</strong></div>
+            <div class="col-6">التاريخ: <strong>@Convert.ToDateTime(header["SaleDate"]).ToString("yyyy-MM-dd HH:mm")</strong></div>
+            <div class="col-6">العميل: <strong>@header["CustomerName"]</strong></div>
+            <div class="col-6">الكاشير: <strong>@header["CashierName"]</strong></div>
+            @if (!header.IsNull("PrescriptionID"))
+            {
+                <div class="col-6">
+                    الوصفة الطبية:
+                    <a asp-controller="Prescriptions" asp-action="Details" asp-route-id="@header["PrescriptionID"]">
+                        رقم @header["PrescriptionID"]
+                    </a>
+                </div>
+            }
+        </div>
+
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:6%">#</th>
+                    <th>الدواء</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                    <th>الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (System.Data.DataRow row in Model.Rows)
+                {
+                    lineNo++;
+                    <tr>
+                        <td>@lineNo</td>
+                        <td>@row["MedicineName"]</td>
+                        <td>@row["Quantity"]</td>
+                        <td>@(((decimal)row["UnitPrice"]).ToString("N2"))</td>
+                        <td>@(((decimal)row["LineTotal"]).ToString("N2"))</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="4" class="text-end">الإجمالي الكلي</th>
+                    <th>@total.ToString("N2") ج.م</th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="text-center text-muted small mt-4">شكرًا لزيارتكم — نتمنى لكم الشفاء العاجل</div>
+    </div>
+</div>
+
+<div class="mt-3 no-print">
+    <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ طباعة الفاتورة</button>
+    <a asp-action="Create" class="btn btn-success">+ فاتورة جديدة</a>
+    <a asp-action="Index" class="btn btn-secondary">رجوع للفواتير</a>
+</div>

@@ -1,0 +1,54 @@
+/* ---------- Sticky footer ----------
+   The page is a column that is at least as tall as the window: the content grows to fill the space
+   and the footer always sits at the bottom - the same place on every screen, short or long. */
+html {
+    height: 100%;
+    overflow-y: scroll; /* always reserve the scrollbar so pages never shift sideways when it appears */
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa;
+}
+
+.page-content {
+    flex: 1 0 auto;
+}
+
+.site-footer {
+    flex-shrink: 0;
+    background-color: #fff;
+}
+
+/* ---------- General ---------- */
+.table th {
+    white-space: nowrap;
+}
+
+.invoice {
+    max-width: 800px;
+    margin-inline: auto;
+}
+
+/* ---------- Printing (invoices) ---------- */
+@media print {
+    body {
+        background: #fff;
+        min-height: 0;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .invoice {
+        border: 0;
+        max-width: 100%;
+    }
+
+    .container {
+        max-width: 100%;
+    }
+}

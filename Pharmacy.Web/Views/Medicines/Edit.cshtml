@@ -1,0 +1,42 @@
+@model Pharmacy.Business.clsMedicine
+
+@{
+    ViewData["Title"] = "تعديل بيانات الدواء";
+}
+
+<h2>تعديل بيانات الدواء</h2>
+
+<form asp-action="Edit" asp-route-id="@Model.MedicineID" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="MedicineID" />
+
+    <div class="form-group mb-2">
+        <label asp-for="Name">اسم الدواء</label>
+        <input asp-for="Name" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="CategoryID">التصنيف</label>
+        <select asp-for="CategoryID" class="form-control" asp-items="ViewBag.Categories">
+            <option value="">-- اختر تصنيف --</option>
+        </select>
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="Description">الوصف</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="Unit">الوحدة (شريط / علبة / زجاجة)</label>
+        <input asp-for="Unit" class="form-control" />
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="RequiresPrescription" class="form-check-input" />
+        <label asp-for="RequiresPrescription" class="form-check-label">يحتاج وصفة طبية</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+    <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+</form>

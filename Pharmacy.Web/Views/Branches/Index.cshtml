@@ -1,0 +1,44 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "الفروع";
+}
+
+<h2>الفروع</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<a asp-action="Create" class="btn btn-primary mb-3">+ إضافة فرع جديد</a>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الكود</th>
+            <th>اسم الفرع</th>
+            <th>العنوان</th>
+            <th>الهاتف</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            <tr>
+                <td>@row["BranchID"]</td>
+                <td>@row["BranchName"]</td>
+                <td>@row["Address"]</td>
+                <td>@row["Phone"]</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@row["BranchID"]" class="btn btn-sm btn-warning">تعديل</a>
+                    <form asp-action="Delete" asp-route-id="@row["BranchID"]" method="post" style="display:inline"
+                          onsubmit="return confirm('متأكد من حذف هذا الفرع؟');">
+                        <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,55 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "الأدوية";
+}
+
+<h2>قائمة الأدوية</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+@if (User.IsInRole("Admin") || User.IsInRole("Pharmacist"))
+{
+    <a asp-action="Create" class="btn btn-primary mb-3">+ إضافة دواء جديد</a>
+}
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الكود</th>
+            <th>الاسم</th>
+            <th>الوصف</th>
+            <th>الوحدة</th>
+            <th>يحتاج وصفة؟</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            <tr>
+                <td>@row["MedicineID"]</td>
+                <td>@row["Name"]</td>
+                <td>@row["Description"]</td>
+                <td>@row["Unit"]</td>
+                <td>@((bool)row["RequiresPrescription"] ? "نعم" : "لا")</td>
+                <td>
+                    @if (User.IsInRole("Admin") || User.IsInRole("Pharmacist"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@row["MedicineID"]" class="btn btn-sm btn-warning">تعديل</a>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <form asp-action="Delete" asp-route-id="@row["MedicineID"]" method="post" style="display:inline"
+                              onsubmit="return confirm('متأكد من حذف هذا الدواء؟');">
+                            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

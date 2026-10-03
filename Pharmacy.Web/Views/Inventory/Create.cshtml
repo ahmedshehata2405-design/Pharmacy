@@ -1,0 +1,43 @@
+@model Pharmacy.Business.clsInventory
+
+@{
+    ViewData["Title"] = "إضافة دواء للمخزون";
+}
+
+<h2>إضافة دواء للمخزون</h2>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="form-group mb-2">
+        <label asp-for="BranchID">الفرع</label>
+        <select asp-for="BranchID" class="form-control" asp-items="ViewBag.Branches">
+            <option value="">-- اختر فرع --</option>
+        </select>
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="MedicineID">الدواء</label>
+        <select asp-for="MedicineID" class="form-control" asp-items="ViewBag.Medicines">
+            <option value="">-- اختر دواء --</option>
+        </select>
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="Quantity">الكمية</label>
+        <input asp-for="Quantity" type="number" min="0" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="SellingPrice">سعر البيع</label>
+        <input asp-for="SellingPrice" type="number" step="0.01" min="0" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="ExpiryDate">تاريخ الانتهاء</label>
+        <input asp-for="ExpiryDate" type="date" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+</form>

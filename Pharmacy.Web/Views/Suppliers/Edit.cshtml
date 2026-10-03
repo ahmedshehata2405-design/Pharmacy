@@ -1,0 +1,35 @@
+@model Pharmacy.Business.clsSupplier
+
+@{
+    ViewData["Title"] = "تعديل بيانات المورد";
+}
+
+<h2>تعديل بيانات المورد</h2>
+
+<form asp-action="Edit" asp-route-id="@Model.SupplierID" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="SupplierID" />
+
+    <div class="form-group mb-2">
+        <label asp-for="Name">اسم المورد</label>
+        <input asp-for="Name" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="Phone">الهاتف</label>
+        <input asp-for="Phone" class="form-control" />
+    </div>
+
+    <div class="form-group mb-2">
+        <label asp-for="Email">البريد الإلكتروني</label>
+        <input asp-for="Email" class="form-control" type="email" />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Address">العنوان</label>
+        <textarea asp-for="Address" class="form-control"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+    <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+</form>

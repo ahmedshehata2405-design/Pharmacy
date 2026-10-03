@@ -1,0 +1,45 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "التصنيفات";
+}
+
+<h2>تصنيفات الأدوية</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<a asp-action="Create" class="btn btn-primary mb-3">+ إضافة تصنيف جديد</a>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الكود</th>
+            <th>اسم التصنيف</th>
+            <th>عدد الأدوية</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            <tr>
+                <td>@row["CategoryID"]</td>
+                <td>@row["CategoryName"]</td>
+                <td>@row["MedicinesCount"]</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@row["CategoryID"]" class="btn btn-sm btn-warning">تعديل</a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <form asp-action="Delete" asp-route-id="@row["CategoryID"]" method="post" style="display:inline"
+                              onsubmit="return confirm('متأكد من حذف هذا التصنيف؟');">
+                            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

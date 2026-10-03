@@ -1,0 +1,66 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "المخزون";
+    System.Data.DataTable expiringSoon = ViewBag.ExpiringSoon;
+}
+
+<h2>المخزون</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+@if (expiringSoon != null && expiringSoon.Rows.Count > 0)
+{
+    <div class="alert alert-warning">
+        ⚠️ يوجد @expiringSoon.Rows.Count صنف قارب على انتهاء الصلاحية (خلال 30 يوم)
+    </div>
+}
+
+@if (User.IsInRole("Admin") || User.IsInRole("Pharmacist"))
+{
+    <a asp-action="Create" class="btn btn-primary mb-3">+ إضافة دواء للمخزون</a>
+}
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الفرع</th>
+            <th>الدواء</th>
+            <th>الكمية</th>
+            <th>سعر البيع</th>
+            <th>تاريخ الانتهاء</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            bool isExpiringSoon = row["ExpiryDate"] != DBNull.Value &&
+                                  Convert.ToDateTime(row["ExpiryDate"]) <= DateTime.Now.AddDays(30);
+
+            <tr class="@(isExpiringSoon ? "table-warning" : "")">
+                <td>@row["BranchName"]</td>
+                <td>@row["MedicineName"]</td>
+                <td>@row["Quantity"]</td>
+                <td>@row["SellingPrice"]</td>
+                <td>@(row["ExpiryDate"] == DBNull.Value ? "-" : Convert.ToDateTime(row["ExpiryDate"]).ToString("yyyy-MM-dd"))</td>
+                <td>
+                    @if (User.IsInRole("Admin") || User.IsInRole("Pharmacist"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@row["InventoryID"]" class="btn btn-sm btn-warning">تعديل</a>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <form asp-action="Delete" asp-route-id="@row["InventoryID"]" method="post" style="display:inline"
+                              onsubmit="return confirm('متأكد من حذف هذا السجل؟');">
+                            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

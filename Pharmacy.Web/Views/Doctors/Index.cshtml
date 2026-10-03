@@ -1,0 +1,53 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "الأطباء";
+}
+
+<h2>الأطباء</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+@if (User.IsInRole("Admin") || User.IsInRole("Pharmacist"))
+{
+    <a asp-action="Create" class="btn btn-primary mb-3">+ إضافة طبيب جديد</a>
+}
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الكود</th>
+            <th>الاسم</th>
+            <th>التخصص</th>
+            <th>الهاتف</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            <tr>
+                <td>@row["DoctorID"]</td>
+                <td>@row["Name"]</td>
+                <td>@row["Specialization"]</td>
+                <td>@row["Phone"]</td>
+                <td>
+                    @if (User.IsInRole("Admin") || User.IsInRole("Pharmacist"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@row["DoctorID"]" class="btn btn-sm btn-warning">تعديل</a>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <form asp-action="Delete" asp-route-id="@row["DoctorID"]" method="post" style="display:inline"
+                              onsubmit="return confirm('متأكد من حذف هذا الطبيب؟');">
+                            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

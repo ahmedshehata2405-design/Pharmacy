@@ -1,0 +1,75 @@
+@model Pharmacy.Business.clsDashboard
+
+@{
+    ViewData["Title"] = "الرئيسية";
+}
+
+<h2 class="mb-4">لوحة التحكم</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h6>عدد الأدوية</h6>
+                <h3>@Model.MedicinesCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h6>أصناف قاربت على النفاذ (≤ 10)</h6>
+                <h3>@Model.LowStockCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h6>أصناف قريبة من انتهاء الصلاحية (30 يوم)</h6>
+                <h3>@Model.ExpiringSoonCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h6>مبيعات اليوم</h6>
+                <h3>@Model.TodaysSalesTotal.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.LowStockCount > 0 || Model.ExpiringSoonCount > 0)
+{
+    <div class="alert alert-warning">
+        ⚠️ يوجد أصناف تحتاج مراجعة في
+        <a asp-controller="Inventory" asp-action="Index">شاشة المخزون</a>.
+    </div>
+}
+
+<h4>آخر عمليات البيع</h4>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الكود</th>
+            <th>الفرع</th>
+            <th>العميل</th>
+            <th>التاريخ</th>
+            <th>الإجمالي</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.RecentSales.Rows)
+        {
+            <tr>
+                <td>@row["SaleID"]</td>
+                <td>@row["BranchName"]</td>
+                <td>@row["CustomerName"]</td>
+                <td>@Convert.ToDateTime(row["SaleDate"]).ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@(((decimal)row["TotalAmount"]).ToString("N2"))</td>
+            </tr>
+        }
+    </tbody>
+</table>

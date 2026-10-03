@@ -1,0 +1,31 @@
+<div class="modal fade" id="quickDoctorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title">إضافة طبيب جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger quick-error d-none"></div>
+                    <div class="mb-2">
+                        <label class="form-label">اسم الطبيب</label>
+                        <input name="name" class="form-control" required />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">التخصص</label>
+                        <input name="specialization" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">الهاتف</label>
+                        <input name="phone" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

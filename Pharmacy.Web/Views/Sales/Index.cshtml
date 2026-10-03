@@ -1,0 +1,44 @@
+@model System.Data.DataTable
+
+@{
+    ViewData["Title"] = "المبيعات";
+}
+
+<h2>فواتير البيع</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<a asp-action="Create" class="btn btn-primary mb-3">+ فاتورة بيع جديدة</a>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>الكود</th>
+            <th>الفرع</th>
+            <th>العميل</th>
+            <th>الكاشير</th>
+            <th>التاريخ</th>
+            <th>الإجمالي</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (System.Data.DataRow row in Model.Rows)
+        {
+            <tr>
+                <td>@row["SaleID"]</td>
+                <td>@row["BranchName"]</td>
+                <td>@row["CustomerName"]</td>
+                <td>@row["CashierName"]</td>
+                <td>@Convert.ToDateTime(row["SaleDate"]).ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@(((decimal)row["TotalAmount"]).ToString("N2"))</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@row["SaleID"]" class="btn btn-sm btn-info">عرض / طباعة</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

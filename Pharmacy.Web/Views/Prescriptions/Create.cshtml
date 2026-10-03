@@ -1,0 +1,151 @@
+@using System.Linq
+@model Pharmacy.Business.clsPrescription
+
+@{
+    ViewData["Title"] = "وصفة طبية جديدة";
+    System.Data.DataTable medicines = ViewBag.Medicines;
+
+    var medicineList = medicines.Rows.Cast<System.Data.DataRow>()
+        .Select(m => new { id = (int)m["MedicineID"], name = m["Name"].ToString() })
+        .ToList();
+
+    // Lines typed before a failed save, so they are not lost
+    var postedLines = Model.Lines?.Select(l => new { medicineId = l.MedicineID, dosage = l.Dosage, quantity = l.Quantity }).ToList();
+}
+
+<h2>وصفة طبية جديدة</h2>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <div>@error.ErrorMessage</div>
+        }
+    </div>
+}
+
+<form asp-action="Create" method="post" id="prescriptionForm">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label asp-for="CustomerID" class="form-label">العميل</label>
+            <div class="input-group">
+                <select asp-for="CustomerID" class="form-select" asp-items="ViewBag.Customers" required>
+                    <option value="">-- اختر عميل --</option>
+                </select>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#quickCustomerModal">+ عميل جديد</button>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="DoctorID" class="form-label">الطبيب</label>
+            <div class="input-group">
+                <select asp-for="DoctorID" class="form-select" asp-items="ViewBag.Doctors" required>
+                    <option value="">-- اختر طبيب --</option>
+                </select>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#quickDoctorModal">+ طبيب جديد</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>الأدوية الموصوفة</span>
+            <button type="button" id="addLineBtn" class="btn btn-sm btn-outline-primary">+ إضافة دواء</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:40%">الدواء</th>
+                        <th>الجرعة</th>
+                        <th style="width:14%">الكمية</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="linesBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">حفظ الوصفة</button>
+    <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+</form>
+
+<partial name="_QuickCustomerModal" />
+<partial name="_QuickDoctorModal" />
+
+@section Scripts {
+<script>
+    const medicineOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(medicineList));
+    const postedLines = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(postedLines)) || [];
+    const linesBody = document.getElementById('linesBody');
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    // Names must be Lines[0], Lines[1], ... with no gaps or ASP.NET stops reading at the first gap
+    function reindex() {
+        linesBody.querySelectorAll('tr').forEach((row, i) => {
+            row.querySelector('.med-select').name = 'Lines[' + i + '].MedicineID';
+            row.querySelector('.dosage-input').name = 'Lines[' + i + '].Dosage';
+            row.querySelector('.qty-input').name = 'Lines[' + i + '].Quantity';
+        });
+    }
+
+    function addLine(medicineId, dosage, quantity) {
+        let options = '<option value="">-- اختر دواء --</option>';
+        medicineOptions.forEach(m => {
+            options += '<option value="' + m.id + '"' + (Number(medicineId) === m.id ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>';
+        });
+
+        const row = document.createElement('tr');
+        row.innerHTML =
+            '<td><select class="form-select med-select">' + options + '</select></td>' +
+            '<td><input type="text" class="form-control dosage-input" placeholder="مثال: قرص كل 8 ساعات" /></td>' +
+            '<td><input type="number" class="form-control qty-input" min="1" value="' + (quantity || 1) + '" /></td>' +
+            '<td><button type="button" class="btn btn-sm btn-outline-danger remove-line">حذف</button></td>';
+        row.querySelector('.dosage-input').value = dosage || '';
+
+        linesBody.appendChild(row);
+        reindex();
+    }
+
+    document.getElementById('addLineBtn').addEventListener('click', function () { addLine(); });
+
+    linesBody.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('remove-line')) return;
+        e.target.closest('tr').remove();
+        if (linesBody.children.length === 0) addLine();
+        reindex();
+    });
+
+    document.getElementById('prescriptionForm').addEventListener('submit', function (e) {
+        // rows the person never filled in are simply dropped
+        linesBody.querySelectorAll('tr').forEach(row => {
+            if (!row.querySelector('.med-select').value) row.remove();
+        });
+
+        if (linesBody.children.length === 0) {
+            e.preventDefault();
+            alert('أضف دواء واحد على الأقل.');
+            addLine();
+            return;
+        }
+
+        reindex();
+    });
+
+    pharmacyQuickAdd('quickCustomerModal', '@Url.Action("QuickCreate", "Customers")', 'CustomerID');
+    pharmacyQuickAdd('quickDoctorModal', '@Url.Action("QuickCreate", "Doctors")', 'DoctorID');
+
+    if (postedLines.length > 0)
+        postedLines.forEach(l => addLine(l.medicineId, l.dosage, l.quantity));
+    else
+        addLine();
+</script>
+}
